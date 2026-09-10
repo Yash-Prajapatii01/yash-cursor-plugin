@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "eRS": {
+      "type": "http",
+      "url": "https://test.eresourcescheduler.cloud/mcp"
+    }
+  }
+}
