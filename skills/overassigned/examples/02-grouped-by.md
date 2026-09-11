@@ -2,12 +2,15 @@
 
 **User:** which team is overassigned
 
-This is **Team** grain. Do not list people. Do not send `organizeBy`. Do not call `ers_type_get` first.
+This is **Team** grain. Do not list people. Do not send `organizeBy`.
+
+Same path for location / department / role — only the field code and first-column name change.
 
 **Agent:**
 
-1. Grain = Team. Skip people.
-2. First report — real option names only, **no** `Team Undefined` in `values`:
+1. Grain = Team (`team` in the message). Skip people.
+2. `ers_type_get` `entity=resource` → display name Team = `udf_team` (e.g. Technical `351`, Administrative `356`).
+3. `ers_report_get` with `resourceFilters` so `group_values.udf_team` exists:
 
 ```
 ers_report_get
@@ -18,16 +21,14 @@ ers_report_get
   startDate=2026-09-07
   endDate=2026-09-13
   limit=500
-  resourceFilters={"code":"udf_team"}
+  resourceFilters={"code":"udf_team","values":["Administrative","Customer Success","Operations","Research & Development","Sales & Marketing","Technical"]}
 ```
 
-3. If that errors because `values` are required, recall with the **valid option names from the error** (Technical, Operations, …). Never add `Team Undefined`.
-4. Hours: if `groups.udf_team[]` has `capacity_hrs` and `planned_hrs`, copy and stop. If it only has `id` / `resource_count` / `resource_ids`, sum `display_units.planned.total` per `group_values.udf_team` and page while `has_more`. Show `is_undefined` rows as **Team Undefined** in the table (output only).
+4. Page while `has_more`. Sum `display_units.planned.total` per `group_values.udf_team`. Map `351` → Technical from type options. Keep `Team Undefined`.
 
-**Wrong:** `ers_type_get entity=resource` with no id before the report.  
-**Wrong:** `values` including `"Team Undefined"`.  
-**Wrong:** a people Name / Capacity / Booked table.  
-**Wrong:** `organizeBy=udf_team`.
+**Wrong:** a Name / Capacity / Booked people table.  
+**Wrong:** `organizeBy=udf_team`.  
+**Wrong:** dump `{id, resource_count, resource_ids}`.
 
 **Right:**
 
@@ -44,10 +45,10 @@ Grouped by: Team
 |---|---:|---:|---:|
 | Technical | 200h | 248h | 48h (124%) |
 
-Location / department / role: same steps; first `code` is `udf_location` / `udf_department` / `roles`.
+Location / department / role: same steps. Resolve `display_name` → code (`udf_location`, `udf_department`, `roles` / `primary_role`), put **all** option names in `values`, first column = that field’s name.
 
 ## What this demonstrates
 
 - "which team is overassigned" → Team, not people.
-- Undefined is printed from `groups`, never sent as a filter value.
-- No type catalog up front. Copy group hour fields when they exist; otherwise sum `display_units`.
+- Any of team, location, department, role uses this grouped path.
+- Hours from `display_units`; labels from type options.
