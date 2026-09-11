@@ -15,44 +15,41 @@ If MCP is missing or auth fails: stop. Tell the user to connect at **Settings �
 
 Scan the user message **before** picking people. People is only the fallback when **none** of team / location / department / role appear.
 
-| If the message has | Grain | First column |
-|---|---|---|
-| team / teams | **Team** | Team |
-| location / locations | **Location** | Location |
-| department / departments | **Department** | Department |
-| role / roles | **Role** (primary) | Role |
-| none of the above | **people** | Name |
+| If the message has | Grain | First column | First `code` to try |
+|---|---|---|---|
+| team / teams | **Team** | Team | `udf_team` (or `Team`) |
+| location / locations | **Location** | Location | `udf_location` (or `Location`) |
+| department / departments | **Department** | Department | `udf_department` (or `Department`) |
+| role / roles | **Role** (primary) | Role | `roles` |
+| none of the above | **people** | Name | — |
 
-These are all Team — do **not** list people:
+"which team is overassigned" / "overassigned teams" / "grouped by team" → Team, **not** people. Same for location, department, role. You do not need the words "grouped by".
 
-- "which team is overassigned"
-- "what team is over capacity"
-- "overassigned teams"
-- "grouped by team"
-
-Same pattern for location, department, and role. You do **not** need the words "grouped by". "Which X" is enough.
-
-If two group nouns appear, group by the one after **which/what** or **grouped by**. A named value is a filter, not the grain ("overassigned teams in UserLoc-01" → grain Team, filter that location). If still two grains, ASK the field **names**.
+If two group nouns appear, group by the one after **which/what** or **grouped by**. A named value is a filter ("teams in UserLoc-01" → grain Team, filter that location). If still two grains, ASK the field **names**.
 
 Never print a people table when grain is Team / Location / Department / Role.
 
-## Resolve the field
+## Do not start with `ers_type_get`
 
-When grain is not people:
+Do **not** call `ers_type_get entity=resource` with no `id` (full type catalog, large). Utilization screen-data already knows Team / Location / Department / Role.
 
-1. `ers_type_get` `entity=resource`. Match grain to `display_name` (not a hardcoded table): Team → `udf_team`, Location → `udf_location`, Department → `udf_department`, Role → `primary_role` (filter code `roles`). One match → that `code`. Zero or 2+ → ask **names**.
-2. Keep `options[]` (id → label). Group buckets often have `id` only (`351`, not "Technical").
+1. Call `ers_report_get` with `resourceFilters.code` from the table above.
+2. `values`: only **real option names**. If the user named one (Technical), send that one. If they asked "which team" (all teams), omit `values` on the first try. **Never** put `Team Undefined`, `Location Undefined`, or `{Field} Undefined` in `values` — not an option; the call fails.
+3. If the tool returns `VALIDATION_ERROR` / `fieldErrors` with a valid-code or valid-values list: recall **once** using that list. Still no Undefined in `values`.
+4. Need labels for numeric ids (`351`) and `groups[].label` is missing: then `ers_type_get` **one** type `id` (Personnel), not the catalog.
+
+Undefined is **output only**: after a successful report, still show `groups.*` rows with `is_undefined=true` as `Team Undefined` (or Location / Department / Role Undefined).
 
 ## Report call
 
 - `report=utilization`
 - `view=resource`
 - `startDate` + `endDate` (`yyyy-MM-dd`)
-- `limit=500`; page `offset` while `has_more`
+- `limit=500`; page `offset` only if you still need hours (below)
 
 **People:** no `resourceFilters`. Use `name`, `total_capacity_hrs`, `total_planned_hrs` / `total_actual_hrs`.
 
-**Team / location / department / role:** `resourceFilters` `{ "code": "<code>", "values": [<all option names for that field>] }` so `report.groups` and `group_values` exist. Code-only is rejected. Do not send `organizeBy`. Include `{Field} Undefined`. If the user named one option, `values` is that option only.
+**Grouped:** `resourceFilters` as above so `report.groups` and `group_values` exist. Do not send `organizeBy`.
 
 | User said | `reportType` | Load |
 |---|---|---|
@@ -66,13 +63,19 @@ Timesheet overload is utilization `planned_vs_actual`, not `report=timesheet`. `
 
 **People:** Capacity = `total_capacity_hrs`. Load = `total_planned_hrs` or `total_actual_hrs`.
 
-**Grouped:** name = `data.name`. Capacity = `display_units.planned.total.capacity_hrs`. Booked = `display_units.planned.total.hrs`. Logged = `display_units.actual.total.hrs`. Bucket = `group_values.<code>`.
+**Grouped — copy totals if they exist, do not invent them.** Check `groups.<code>[]` (and `data.by_role` for Role) for `capacity_hrs` plus `planned_hrs` / `actual_hrs` / `hrs`. If those fields are present **and** `has_more` is false (or the totals are clearly tenant-wide, not one page): copy them. Stop. Do not page people.
 
-Overbooked = load − capacity. Keep if **> 0.25h**.
+Today `groups.udf_team` is usually membership only (`id`, `resource_count`, `resource_ids`) — **no hours**. `by_role` hours are often **this page**, not the tenant. Then you must sum:
 
-**Group row:** page until complete; sum capacity and load per bucket. Label from `groups.<code>[].label` or type options; Undefined → `Team Undefined` (or Location / Department / Role). `%` = that group's load ÷ capacity × 100. `groups.*` has no hours — do not print `resource_ids`. Copy `data.by_role` only as a hint; it is page-sliced — still sum from resources.
+- Capacity = `display_units.planned.total.capacity_hrs`
+- Booked = `display_units.planned.total.hrs`
+- Logged = `display_units.actual.total.hrs`
+- Bucket = `group_values.<code>`
+- Label = `groups.<code>[].label` or option name; else `Team Undefined` when `is_undefined`
 
-Round hours to 1 decimal (drop `.0`). Round % to a whole number.
+Page `limit=500` until `has_more` is false. If you stop early, say the table is **partial**. Do not print `resource_ids`.
+
+Overbooked = load − capacity. Keep if **> 0.25h**. `%` = that row’s load ÷ capacity × 100. Round hours to 1 decimal (drop `.0`). Round % to a whole number.
 
 ## Dates
 
@@ -100,8 +103,8 @@ Grouped by: <Team | Location | Department | Role | people>
 | Technical | 200h | 248h | 48h (124%) |
 ```
 
-First column = grain (Team / Location / Department / Role / Name). Empty: `No overassigned <teams | locations | departments | roles | people> in <start> to <end>.`
+First column = grain. Empty: `No overassigned <teams | locations | departments | roles | people> in <start> to <end>.`
 
-If a tool fails: say so and print a partial table.
+If a tool fails: quote the error; if it lists valid `values`, recall without Undefined. Do not retry the same bad payload.
 
 People: [examples/01-current-week.md](examples/01-current-week.md). Grouped: [examples/02-grouped-by.md](examples/02-grouped-by.md).
