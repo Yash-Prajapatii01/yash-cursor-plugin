@@ -79,4 +79,4 @@ No overassigned resources in 2026-09-07 to 2026-09-13.
 - Default "nothing named" → both sections.
 - User sees Name / Capacity / Booked or Logged / Overbooked — never raw field tuples.
 - Empty state is one line per section, not invented rows.
-- People only here. Grouped by location/team: [02-grouped-by-location.md](02-grouped-by-location.md).
+- People only here. Team / location / department / role: [02-grouped-by.md](02-grouped-by.md).
