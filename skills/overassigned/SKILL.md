@@ -56,17 +56,18 @@ When grain is not people:
 
 `values` are Planned Utilization option **names** only (Technical, Operations, …). Never send `Team Undefined`, `Location Undefined`, `Role Undefined`, or `{Field} Undefined` — not an option; the tool returns `VALIDATION_ERROR` ("No udf_team option … matches \"Team Undefined\""). People with no team still come back in `groups.udf_team` with `is_undefined=true` — that bucket is output-only. Same for location / department / role. If a call failed because Undefined was in `values`, drop it and recall **once**.
 
-| User said | `reportType` | Load |
-|---|---|---|
-| Bookings / scheduled / planned / allocated | `planned` | planned hours |
-| Timesheets / actuals / logged time | `planned_vs_actual` | actual hours |
-| Nothing | **both** | planned, then actual |
+| User said | `reportType` | `data` | What to print |
+|---|---|---|---|
+| Bookings / scheduled / planned / allocated only | `planned` | `planned,capacity` | Bookings section |
+| Timesheets / actuals / logged time, **or nothing** | `planned_vs_actual` | `planned,actual,capacity` | Timesheets section, or **both** sections from this one payload |
 
-Timesheet overload is utilization `planned_vs_actual`, not `report=timesheet`. `data`: `planned,capacity` or `planned,actual,capacity`.
+`planned_vs_actual` already includes planned hours. Do **not** also call `planned`. Never two reportTypes. Never `report=timesheet`.
+
+If `planned_vs_actual` fails, fall back to one `planned` call and say actuals were not available.
 
 ## Hours
 
-**People:** Capacity = `total_capacity_hrs`. Load = `total_planned_hrs` or `total_actual_hrs`.
+**People:** Capacity = `total_capacity_hrs`. Booked = `total_planned_hrs`. Logged = `total_actual_hrs` (only on `planned_vs_actual`).
 
 **Grouped:** name = `data.name`. Capacity = `display_units.planned.total.capacity_hrs`. Booked = `display_units.planned.total.hrs`. Logged = `display_units.actual.total.hrs`. Bucket = `group_values.<code>`.
 

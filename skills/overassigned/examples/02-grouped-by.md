@@ -10,34 +10,35 @@ Same path for location / department / role — only the field code and first-col
 
 1. Grain = Team (`team` in the message). Skip people.
 2. `ers_type_get` `entity=resource` → display name Team = `udf_team` (e.g. Technical `351`, Administrative `356`).
-3. `ers_report_get` with `resourceFilters` so `group_values.udf_team` exists:
+3. `ers_report_get` with `resourceFilters` so `group_values.udf_team` exists. User did not say bookings-only → **one** `planned_vs_actual` (planned + actual on the same rows):
 
 ```
 ers_report_get
   report=utilization
-  reportType=planned
+  reportType=planned_vs_actual
   view=resource
-  data=planned,capacity
+  data=planned,actual,capacity
   startDate=2026-09-07
   endDate=2026-09-13
   limit=500
   resourceFilters={"code":"udf_team","values":["Administrative","Customer Success","Operations","Research & Development","Sales & Marketing","Technical"]}
 ```
 
-Never put `"Team Undefined"` in `values` (not an option → `VALIDATION_ERROR`). People with no team still appear in `groups.udf_team` as `is_undefined=true`.
+Never put `"Team Undefined"` in `values` (not an option → `VALIDATION_ERROR`). People with no team still appear in `groups.udf_team` as `is_undefined=true`. Do not also call `reportType=planned`.
 
-4. Page while `has_more`. Sum `display_units.planned.total` per `group_values.udf_team`. Map `351` → Technical from type options. Print the no-team bucket as **Team Undefined** in the table only.
+4. Page while `has_more`. Sum `display_units.planned.total` (booked) and `display_units.actual.total` (logged) per `group_values.udf_team`. Map `351` → Technical from type options. Print the no-team bucket as **Team Undefined** in the table only.
 
 **Wrong:** a Name / Capacity / Booked people table.  
 **Wrong:** `organizeBy=udf_team`.  
 **Wrong:** dump `{id, resource_count, resource_ids}`.  
-**Wrong:** `values` including `"Team Undefined"`.
+**Wrong:** `values` including `"Team Undefined"`.  
+**Wrong:** a second `reportType=planned` call.
 
 **Right:**
 
 # Overassigned — 2026-09-07 to 2026-09-13
 
-Basis: bookings
+Basis: bookings and timesheets
 Grouped by: Team
 
 ## Bookings (planned vs capacity)
@@ -54,4 +55,4 @@ Location / department / role: same steps. Resolve `display_name` → code (`udf_
 
 - "which team is overassigned" → Team, not people.
 - Any of team, location, department, role uses this grouped path.
-- Hours from `display_units`; labels from type options.
+- Hours from `display_units` on one `planned_vs_actual` payload; labels from type options.
