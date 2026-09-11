@@ -52,7 +52,9 @@ When grain is not people:
 
 **People:** no `resourceFilters`. Use `name`, `total_capacity_hrs`, `total_planned_hrs` / `total_actual_hrs`.
 
-**Team / location / department / role:** `resourceFilters` `{ "code": "<code>", "values": [<all option names for that field>] }` so `report.groups` and `group_values` exist. Code-only is rejected. Do not send `organizeBy`. Include `{Field} Undefined`. If the user named one option, `values` is that option only.
+**Team / location / department / role:** `resourceFilters` `{ "code": "<code>", "values": [<all real option names for that field>] }` so `report.groups` and `group_values` exist. Code-only is rejected. Do not send `organizeBy`. If the user named one option, `values` is that option only.
+
+`values` are Planned Utilization option **names** only (Technical, Operations, …). Never send `Team Undefined`, `Location Undefined`, `Role Undefined`, or `{Field} Undefined` — not an option; the tool returns `VALIDATION_ERROR` ("No udf_team option … matches \"Team Undefined\""). People with no team still come back in `groups.udf_team` with `is_undefined=true` — that bucket is output-only. Same for location / department / role. If a call failed because Undefined was in `values`, drop it and recall **once**.
 
 | User said | `reportType` | Load |
 |---|---|---|
@@ -70,7 +72,7 @@ Timesheet overload is utilization `planned_vs_actual`, not `report=timesheet`. `
 
 Overbooked = load − capacity. Keep if **> 0.25h**.
 
-**Group row:** page until complete; sum capacity and load per bucket. Label from `groups.<code>[].label` or type options; Undefined → `Team Undefined` (or Location / Department / Role). `%` = that group's load ÷ capacity × 100. `groups.*` has no hours — do not print `resource_ids`. Copy `data.by_role` only as a hint; it is page-sliced — still sum from resources.
+**Group row:** page until complete; sum capacity and load per bucket. Label from `groups.<code>[].label` or type options. Rows with `is_undefined=true` (no team / location / department / role set) → first column `Team Undefined` (or Location / Department / Role Undefined). `%` = that group's load ÷ capacity × 100. `groups.*` has no hours — do not print `resource_ids`. Copy `data.by_role` only as a hint; it is page-sliced — still sum from resources.
 
 Round hours to 1 decimal (drop `.0`). Round % to a whole number.
 

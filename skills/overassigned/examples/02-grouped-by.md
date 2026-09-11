@@ -24,11 +24,14 @@ ers_report_get
   resourceFilters={"code":"udf_team","values":["Administrative","Customer Success","Operations","Research & Development","Sales & Marketing","Technical"]}
 ```
 
-4. Page while `has_more`. Sum `display_units.planned.total` per `group_values.udf_team`. Map `351` → Technical from type options. Keep `Team Undefined`.
+Never put `"Team Undefined"` in `values` (not an option → `VALIDATION_ERROR`). People with no team still appear in `groups.udf_team` as `is_undefined=true`.
+
+4. Page while `has_more`. Sum `display_units.planned.total` per `group_values.udf_team`. Map `351` → Technical from type options. Print the no-team bucket as **Team Undefined** in the table only.
 
 **Wrong:** a Name / Capacity / Booked people table.  
 **Wrong:** `organizeBy=udf_team`.  
-**Wrong:** dump `{id, resource_count, resource_ids}`.
+**Wrong:** dump `{id, resource_count, resource_ids}`.  
+**Wrong:** `values` including `"Team Undefined"`.
 
 **Right:**
 
