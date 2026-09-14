@@ -32,7 +32,6 @@ Auth is OAuth 2.0 against ERS. Cursor prompts for ERS sign-in when the plugin co
 | Skill | What it does |
 |---|---|
 | `overassigned` | Who is booked or logged above working capacity |
-| `example-skill` | Placeholder that lists what a skill folder can contain |
 
 ## Notes
 

@@ -6,4 +6,4 @@ All notable changes to this plugin will be documented here.
 
 - Added the `eRS` MCP server pointing at `https://test.eresourcescheduler.cloud/mcp`.
 - Logo: `assets/logo.png`.
-- Skills: `overassigned` (booked or logged above capacity); `example-skill` placeholder.
+- Skills: `overassigned` (booked or logged above capacity).
