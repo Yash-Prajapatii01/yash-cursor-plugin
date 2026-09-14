@@ -83,18 +83,29 @@ For each `resources[]`: name = `data.name`. Sum the same daily lines for work co
 
 ## Chart + list
 
-Markdown in chat. Pie or bar via **mermaid** (not a canvas, not a screenshot). Then a ranked table. Do not wrap the table in a fence.
+Markdown in chat. Then a ranked table. Do not wrap the table in a fence.
 
-- Revenue question → rank **revenue** descending; pie of revenue.
-- Profitable question → rank **profit** descending; bar of profit (pie of negative profit is useless).
+**Never emit `pie`.** Cursor Chat does not render Mermaid pie (it falls back to flowchart and shows `Mermaid Syntax Error`). Use **`xychart-beta` bars** — that type is supported. Put the date range in the markdown heading, not in the chart title.
 
-Top **8** named slices; remainder as `Other`. Cap the table at 15; then `+<n> more`.
+Emit **exactly** this shape inside a `mermaid` fence (do not copy this example as `pie`):
 
-```mermaid
-pie title Revenue by Team (USD) — <start> to <end>
-  "Technical" : 12000
-  "Operations" : 8000
-```
+    xychart-beta
+        title Planned revenue USD
+        x-axis ["ConnectSphere", "Other"]
+        y-axis "USD" 0 --> 30000
+        bar [6000, 22240]
+
+Rules:
+
+- Keyword is `xychart-beta` (not `pie`, not `xychart`)
+- Title: short words only (no `()`, no `—`, no dates)
+- `x-axis` labels in double quotes; strip `,` and `"` from names
+- `bar` values: numbers only (`6000` not `6000 USD` or `6,000`). Negatives are OK
+- `y-axis "USD" 0 --> <max>` where max is a round number ≥ the largest bar
+- Top **8** named bars; rest as `"Other"`
+- Cap the table at 15; then `+<n> more`
+- Revenue question → bars of revenue. Profitable question → bars of profit
+- If every value is 0, skip the chart and keep the table
 
 ```markdown
 # <Revenue | Profit> — <start> to <end>
@@ -112,7 +123,7 @@ Top: <name> — <amount> <currency>
 
 People table: **Name | Rate | Projects | Profit | Profit %**.
 
-Empty / all revenue 0: skip the pie; `No revenue in <start> to <end>.` Still list profit/cost if those are non-zero.
+Empty / all revenue 0: skip the chart; `No revenue in <start> to <end>.` Still list profit/cost if those are non-zero.
 
 If a tool fails: quote the error; do not retry the same `organizeBy`/`view` payload.
 

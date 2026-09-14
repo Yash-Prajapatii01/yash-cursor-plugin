@@ -16,17 +16,18 @@ If `needs_cost_rate_source`, recall with `costRateSource=0` (revenue does not us
 
 COPY `data.report.groups.udf_team[]`: `revenue` / `actual_revenue`, `profit_loss`, `label` or type option for `id`. Never send `"Team Undefined"` as a filter value; still print `is_undefined` rows.
 
-Rank by revenue. Mermaid pie + table. Currency from `admin.currency`.
+Rank by revenue. `xychart-beta` bars + table. Currency from `admin.currency`. Never `pie` (Cursor Chat cannot render it).
 
-**Wrong:** `organizeBy=Team`. **Wrong:** `report=utilization`. **Wrong:** hours × rate.
+**Wrong:** `organizeBy=Team`. **Wrong:** `report=utilization`. **Wrong:** hours × rate.  
+**Wrong:** any `pie` diagram (Cursor shows Mermaid Syntax Error even for valid pie).
 
 **Right:**
 
-```mermaid
-pie title Revenue by Team (USD) — 2026-09-07 to 2026-09-13
-  "Technical" : 12000
-  "Team Undefined" : 500
-```
+    xychart-beta
+        title Planned revenue USD
+        x-axis ["Technical", "Team Undefined"]
+        y-axis "USD" 0 --> 15000
+        bar [12000, 500]
 
 # Revenue — 2026-09-07 to 2026-09-13
 
