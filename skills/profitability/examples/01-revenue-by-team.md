@@ -24,7 +24,7 @@ Rank by revenue. `xychart-beta` bars + table. Currency from `admin.currency`. Ne
 
     xychart-beta
         title Planned revenue USD
-        x-axis ["Technical", "Team Undefined"]
+        x-axis [Technical, Undefined]
         y-axis "USD" 0 --> 15000
         bar [12000, 500]
 

@@ -99,21 +99,22 @@ Emit **exactly** this shape inside a `mermaid` fence (do not copy this example a
 
     xychart-beta
         title Planned revenue USD
-        x-axis ["ConnectSphere", "Other"]
-        y-axis "USD" 0 --> 30000
-        bar [6000, 22240]
+        x-axis [ConnectSphere, DocMgmt, Goibibo, Other]
+        y-axis "USD" 0 --> 7000
+        bar [6000, 3750, 2000, 11210]
 
 Rules:
 
 - Keyword is `xychart-beta` (not `pie`, not `xychart`)
 - Title: short words only (no `()`, no `—`, no dates)
-- `x-axis` labels in double quotes; strip `,` and `"` from names
+- **`x-axis` labels: one word each, no spaces, no quotes.** Cursor's renderer prints quotes literally and does not rotate or wrap labels, so quoted multi-word names overlap into a smear. Abbreviate: `Document Management System` → `DocMgmt`, `Nova Social Media Revamp` → `Nova`. Full names go in the table, never in the chart
+- **At most 6 bars** (5 named + `Other`). More than that collides even with short labels
+- Plain `xychart-beta` only — do **not** add `horizontal` to fit longer names
 - `bar` values: numbers only (`6000` not `6000 USD` or `6,000`). Negatives are OK
 - `y-axis "USD" 0 --> <max>` where max is a round number ≥ the largest bar
-- Top **8** named bars; rest as `"Other"`
 - Cap the table at 15; then `+<n> more`
 - Revenue question → bars of revenue. Profitable question → bars of profit
-- If every value is 0, skip the chart and keep the table
+- If every value is 0, or two or fewer rows are non-zero, skip the chart and keep the table
 
 ```markdown
 # <Revenue | Profit> — <start> to <end>

@@ -15,15 +15,16 @@ ers_report_get
 
 `projects[]` = titles. Sum `dailyUtilCost` / `dailyActualUtilCost` lines: `[work_cost, revenue, record_id, project_id, …]`. Rank by **planned** revenue. Show Actual column. Never add planned + actual. Never `pie`.
 
-**Wrong:** rank `project_groups`. **Wrong:** treat `record_id` as project. **Wrong:** one Revenue column that sums planned + actual. **Wrong:** list every 0-revenue project.
+**Wrong:** rank `project_groups`. **Wrong:** treat `record_id` as project. **Wrong:** one Revenue column that sums planned + actual. **Wrong:** list every 0-revenue project.  
+**Wrong:** `x-axis ["ConnectSphere", "Document Management System", …]` — quotes print literally and long names overlap. Abbreviate to one word, max 6 bars.
 
 **Right:**
 
     xychart-beta
         title Planned revenue USD
-        x-axis ["ConnectSphere", "Document Management System", "Other"]
+        x-axis [ConnectSphere, DocMgmt, Goibibo, Aurora, Sablewood, Other]
         y-axis "USD" 0 --> 7000
-        bar [6000, 3750, 13210]
+        bar [6000, 3750, 2000, 2000, 1800, 7410]
 
 # Revenue — 2026-09-14 to 2026-09-20
 
