@@ -1,0 +1,119 @@
+---
+name: profitability
+description: Ranks eResource Scheduler projects, teams, or people by revenue or profit. Use when someone says "earning more revenue", "which project is making money", "which team is earning", "which resource is profitable", "profitability", "top revenue", "margin", or "profit %".
+---
+
+# Profitability
+
+Read-only. Print in chat. Do not change bookings, timesheets, or rates.
+
+Use `ers_report_get` `report=financial`. Never `ers_booking_search`, `ers_timesheet_search`, `ers_resource_search`. Never `hours × rate` (if `FINANCIAL_ACCESS_DENIED`, stop). Never `organizeBy` or `view` on financial — both are `WRONG_PARAMS`.
+
+If MCP is missing or auth fails: stop. Tell the user to connect at **Settings → Tools & MCP → eRS → Connect**.
+
+## Grain
+
+| User said | Grain | Data |
+|---|---|---|
+| project / projects | **Project** | Roll up allocation lines by project id |
+| team / teams / groups | **Team** (field named Group if no Team) | COPY `report.groups.udf_team` (money is already on the bucket) |
+| department / location / role | that field | COPY `report.groups.<code>` |
+| resource / person / who is profitable | **People** | Sum each `resources[]` row |
+| earning / revenue and no grain | **Project** | |
+| profitable and no grain | **People** | |
+
+Do not list people when grain is Team / Project. `project_groups` has **no** money — do not use it to rank revenue.
+
+## Report call (plan_financial vs actual_financial)
+
+`report=financial`. Dates: named range, or named month → first–last day, else **current week** (Mon–Sun).
+
+| User said | `reportType` | Meaning |
+|---|---|---|
+| Bookings / scheduled / planned / allocated | `planned` | plan_financial |
+| Timesheets / actuals / logged | `actual` | actual_financial |
+| Both / nothing | `planned_vs_actual` | both on one payload — do not also call `planned` or `actual` |
+
+Never omit `reportType` (that only returns `needs_calculation_method`). Never `report=timesheet` or `report=utilization` for money.
+
+**Cost rate:** omit `costRateSource` on the first call.
+
+- **Revenue only** (“earning”, “top revenue”) and `needs_cost_rate_source`: recall `costRateSource=0`. Do not ask.
+- **Profit / profitable / % / margin** and `needs_cost_rate_source`: ASK which `available_cost_rate_sources` (0 Resource, 1 Role, 2 Resource then Role, 3 Role then Resource). Do not assume Resource. Then recall.
+- Copy `admin.currency` and `admin.profit_calculation` (e.g. Profit / Revenue). Never invent a formula.
+
+## Hours vs money
+
+COPY group money. Do not rebuild from bookings.
+
+| `reportType` | Work cost | Revenue | Profit |
+|---|---|---|---|
+| `planned` | `cost` | `revenue` | `profit_loss` |
+| `actual` / both | `actual_cost` (also copied as `cost`) | `actual_revenue` | `actual_profit_loss` |
+
+Work cost **excludes Bench**. `total_cost` / `actual_total_cost` = work + bench. Name the column (Planned Cost vs Actual Cost). Bare “cost”: ASK Actual vs Bench before ranking.
+
+`%` = profit ÷ revenue × 100 when revenue **> 0**, matching `admin.profit_calculation`. If revenue is 0, show profit as money and `%` as `—` (do not divide).
+
+Keep zero-money buckets (including `{Field} Undefined`). Never put `Team Undefined` in a filter `values` list.
+
+## Team / department / location / role
+
+COPY `report.groups.<code>` (`udf_team`, `udf_department`, `udf_location`, `primary_role`). Fields: `id`, `label` (may be missing), `revenue` / `actual_revenue`, `profit_loss` / `actual_profit_loss`, `cost` / `actual_cost`.
+
+Label: `label` if present, else option name from `ers_type_get` **one** type id (not the full catalog). `is_undefined` → `Team Undefined` in the **table only**.
+
+## Project
+
+`report.projects[]` has titles, not money. Sum allocation lines on each resource:
+
+- Planned: `dailyUtilCost`
+- Actual: `dailyActualUtilCost`
+- Both: both arrays on the same row (`planned_vs_actual`)
+
+Each day is `[day_work_cost, [lines…], _]`. Each line is `[work_cost, revenue, record_id, project_id, …]`. Map `project_id` → `title` from `report.projects`. Sum cost and revenue per project. Profit = revenue − work cost (same as group `profit_loss` on work, not bench).
+
+## People (profitable resources)
+
+For each `resources[]`: name = `data.name`. Sum the same daily lines for work cost + revenue. Profit and `%` as above.
+
+**Projects they work:** unique `project_id` titles from those lines.
+
+**Rates:** do not compute profit from rates. When the user asked for rates (or this people output), `ers_rate` with the **resource name** on `ownerId` for the top rows only (cap 10). Copy the card; never `hours × rate`.
+
+## Chart + list
+
+Markdown in chat. Pie or bar via **mermaid** (not a canvas, not a screenshot). Then a ranked table. Do not wrap the table in a fence.
+
+- Revenue question → rank **revenue** descending; pie of revenue.
+- Profitable question → rank **profit** descending; bar of profit (pie of negative profit is useless).
+
+Top **8** named slices; remainder as `Other`. Cap the table at 15; then `+<n> more`.
+
+```mermaid
+pie title Revenue by Team (USD) — <start> to <end>
+  "Technical" : 12000
+  "Operations" : 8000
+```
+
+```markdown
+# <Revenue | Profit> — <start> to <end>
+
+Basis: <bookings (planned) | timesheets (actual) | bookings and timesheets>
+Currency: <admin.currency> · Profit %: <admin.profit_calculation>
+Cost rate: <cost_rate_source_label>
+
+Top: <name> — <amount> <currency>
+
+| Team | Revenue | Profit | Profit % |
+|---|---:|---:|---:|
+| Technical | 12000 | 2400 | 20% |
+```
+
+People table: **Name | Rate | Projects | Profit | Profit %**.
+
+Empty / all revenue 0: skip the pie; `No revenue in <start> to <end>.` Still list profit/cost if those are non-zero.
+
+If a tool fails: quote the error; do not retry the same `organizeBy`/`view` payload.
+
+Examples: [examples/01-revenue-by-team.md](examples/01-revenue-by-team.md), [examples/02-resource-profit.md](examples/02-resource-profit.md).

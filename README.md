@@ -32,6 +32,7 @@ Auth is OAuth 2.0 against ERS. Cursor prompts for ERS sign-in when the plugin co
 | Skill | What it does |
 |---|---|
 | `overassigned` | Who is booked or logged above working capacity |
+| `profitability` | Who / which project or team earns revenue or profit |
 
 ## Notes
 
