@@ -36,11 +36,13 @@ Do not list people when grain is Team / Project. `project_groups` has **no** mon
 
 Never omit `reportType` (that only returns `needs_calculation_method`). Never `report=timesheet` or `report=utilization` for money.
 
-**Cost rate:** omit `costRateSource` on the first call.
+**Cost rate:**
 
-- **Revenue only** (“earning”, “top revenue”) and `needs_cost_rate_source`: recall `costRateSource=0`. Do not ask.
-- **Profit / profitable / % / margin** and `needs_cost_rate_source`: ASK which `available_cost_rate_sources` (0 Resource, 1 Role, 2 Resource then Role, 3 Role then Resource). Do not assume Resource. Then recall.
+- **Revenue only** (“earning”, “top revenue”, “which project/team gives more revenue”): send `costRateSource=0` on the **first** call. Revenue does not use cost rate — `0` only unblocks this tenant when Admin has none set. Do **not** omit, do **not** make a second call, do **not** ASK.
+- **Profit / profitable / % / margin:** omit `costRateSource` on the first call. If `needs_cost_rate_source`, ASK which `available_cost_rate_sources` (0 Resource, 1 Role, 2 Resource then Role, 3 Role then Resource). Do not assume Resource. Then recall.
 - Copy `admin.currency` and `admin.profit_calculation` (e.g. Profit / Revenue). Never invent a formula.
+
+**Never print to the user:** `needs_cost_rate_source`, `ask_user`, “Admin doesn’t have a cost-rate source”, “Recalling with Resource”, or that a cost rate was missing. That is an internal recall, not an error.
 
 ## Hours vs money
 
@@ -65,13 +67,19 @@ Label: `label` if present, else option name from `ers_type_get` **one** type id 
 
 ## Project
 
-`report.projects[]` has titles, not money. Sum allocation lines on each resource:
+`report.projects[]` has titles, not money. `project_groups` is membership only — do not rank from it.
+
+Sum allocation lines on each `resources[]` row:
 
 - Planned: `dailyUtilCost`
 - Actual: `dailyActualUtilCost`
 - Both: both arrays on the same row (`planned_vs_actual`)
 
-Each day is `[day_work_cost, [lines…], _]`. Each line is `[work_cost, revenue, record_id, project_id, …]`. Map `project_id` → `title` from `report.projects`. Sum cost and revenue per project. Profit = revenue − work cost (same as group `profit_loss` on work, not bench).
+Each day is `[day_work_cost, [lines…], day_revenue]`. Each line is `[work_cost, revenue, record_id, project_id, …]` (length 6). **Index 3 is project id.** Never treat `record_id` (index 2) as a project. Map `project_id` → `title` from `report.projects`. Check `sum(planned revenue) == sum(report.totalRevenue)` and actual vs `totalActualRevenue`.
+
+**Never add planned + actual.** Rank by planned revenue unless the user said timesheets / actuals / logged. On `planned_vs_actual`, always show both columns. If the actual leader is a different project, name both.
+
+Revenue ranking: print rows with planned or actual **> 0**. Mention how many projects were 0. Do not list the full catalog.
 
 ## People (profitable resources)
 
@@ -112,19 +120,21 @@ Rules:
 
 Basis: <bookings (planned) | timesheets (actual) | bookings and timesheets>
 Currency: <admin.currency> · Profit %: <admin.profit_calculation>
-Cost rate: <cost_rate_source_label>
 
-Top: <name> — <amount> <currency>
-
-| Team | Revenue | Profit | Profit % |
-|---|---:|---:|---:|
-| Technical | 12000 | 2400 | 20% |
+Top planned: <name> — <amount> <currency>
+Top actual: <name> — <amount> <currency>   (omit this line if actual is all 0)
 ```
 
-People table: **Name | Rate | Projects | Profit | Profit %**.
+Revenue-only table (no Profit columns — cost rate was not chosen for ranking):
+
+| Grain | Planned | Actual |
+|---|---:|---:|
+| ConnectSphere | 6000 | 0 |
+
+People + profit table: **Name | Rate | Projects | Profit | Profit %**.
 
 Empty / all revenue 0: skip the chart; `No revenue in <start> to <end>.` Still list profit/cost if those are non-zero.
 
 If a tool fails: quote the error; do not retry the same `organizeBy`/`view` payload.
 
-Examples: [examples/01-revenue-by-team.md](examples/01-revenue-by-team.md), [examples/02-resource-profit.md](examples/02-resource-profit.md).
+Examples: [examples/01-revenue-by-team.md](examples/01-revenue-by-team.md), [examples/02-resource-profit.md](examples/02-resource-profit.md), [examples/03-revenue-by-project.md](examples/03-revenue-by-project.md).
